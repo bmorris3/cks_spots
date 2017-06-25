@@ -11,6 +11,7 @@ from astropy.io import fits
 import astropy.units as u
 from astropy.time import Time
 from astropy.stats import mad_std, sigma_clip
+from astropy.nddata import StdDevUncertainty
 from specutils.io import read_fits
 from specutils import Spectrum1D as Spec1D
 from scipy.ndimage import gaussian_filter1d
@@ -119,8 +120,12 @@ class EchelleSpectrum(object):
             Path to the FITS file
         """
         f = fits.open(path)[0]
-        w = fits.open(path)[2]
-        spectrum_list = [Spectrum1D.from_array(w.data[i, :]*u.Angstrom, f.data[i, :]) for i in range(f.shape[0])]
+        ferr = fits.open(path)[1].data
+        w = fits.open(path)[2].data
+        spectrum_list = [Spectrum1D.from_array(w[i, :] * u.Angstrom,
+                                               f.data[i, :],
+                                               uncertainty=StdDevUncertainty(ferr[i, :]))
+                         for i in range(f.shape[0])]
 
         return cls(spectrum_list, header=f.header, fits_path=path, name=name)
     
